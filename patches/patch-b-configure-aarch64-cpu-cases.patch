@@ -1,0 +1,95 @@
+Add aarch64/arm64 CPU cases to configure (interpreter-only)
+
+CPU case 1 (the JIT/Nanojit selection block): an aarch64 target gets empty
+ENABLE_TRACEJIT/ENABLE_METHODJIT/ENABLE_MONOIC/ENABLE_POLYIC (so
+FEATURE_NANOJIT/JS_TRACER are never defined) plus JS_PUNBOX64, the
+load-bearing 64-bit value-layout define. The AVMPLUS block gets an empty
+case so the 32-bit AVMPLUS_ARM define is not applied. Both the generated
+configure script and configure.in are patched in lockstep. The 32-bit
+JS_CPU_ARM cases are untouched. Intent: interpreter-only (Oolite ships
+JIT off). NOTE: the configure hunk alignment repeats the JS_PUNBOX64
+define block because diff maximally aligns it with the x86_64 case; the
+aarch64 case is its own case after the x86_64 one.
+--- a/js/src/configure.in
++++ b/js/src/configure.in
+@@ -2947,6 +2947,13 @@
+     AC_DEFINE(JS_CPU_X64)
+     AC_DEFINE(JS_PUNBOX64)
+     ;;
++aarch64*-*|arm64*-*)
++    ENABLE_TRACEJIT=
++    ENABLE_METHODJIT=
++    ENABLE_MONOIC=
++    ENABLE_POLYIC=
++    AC_DEFINE(JS_PUNBOX64)
++    ;;
+ arm*-*)
+     ENABLE_TRACEJIT=1
+     NANOJIT_ARCH=ARM
+@@ -3018,6 +3025,8 @@
+ x86_64*-*)
+     AC_DEFINE(AVMPLUS_AMD64)
+     AC_DEFINE(AVMPLUS_64BIT)
++    ;;
++aarch64*-*|arm64*-*)
+     ;;
+ arm*-*)
+     AC_DEFINE(AVMPLUS_ARM)
+--- a/js/src/configure
++++ b/js/src/configure
+@@ -7983,22 +7983,32 @@
+     ;;
+ x86_64*-*)
+     ENABLE_TRACEJIT=1
+     NANOJIT_ARCH=X64
+     ENABLE_METHODJIT=1
+     ENABLE_MONOIC=1
+     ENABLE_POLYIC=1
+     ENABLE_POLYIC_TYPED_ARRAY=1
+     cat >> confdefs.h <<\EOF
+ #define JS_CPU_X64 1
++EOF
++
++    cat >> confdefs.h <<\EOF
++#define JS_PUNBOX64 1
+ EOF
+
++    ;;
++aarch64*-*|arm64*-*)
++    ENABLE_TRACEJIT=
++    ENABLE_METHODJIT=
++    ENABLE_MONOIC=
++    ENABLE_POLYIC=
+     cat >> confdefs.h <<\EOF
+ #define JS_PUNBOX64 1
+ EOF
+
+     ;;
+ arm*-*)
+     ENABLE_TRACEJIT=1
+     NANOJIT_ARCH=ARM
+     ENABLE_METHODJIT=1
+     ENABLE_MONOIC=1
+@@ -8145,20 +8155,22 @@
+ x86_64*-*)
+     cat >> confdefs.h <<\EOF
+ #define AVMPLUS_AMD64 1
+ EOF
+
+     cat >> confdefs.h <<\EOF
+ #define AVMPLUS_64BIT 1
+ EOF
+
+     ;;
++aarch64*-*|arm64*-*)
++    ;;
+ arm*-*)
+     cat >> confdefs.h <<\EOF
+ #define AVMPLUS_ARM 1
+ EOF
+
+     ;;
+ sparc-*)
+     cat >> confdefs.h <<\EOF
+ #define AVMPLUS_SPARC 1
+ EOF

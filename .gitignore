@@ -1,0 +1,7 @@
+# Build outputs
+js/src/build-*/
+dist/
+*.o
+*.a
+*.dylib
+.DS_Store

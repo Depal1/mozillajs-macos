@@ -1,0 +1,72 @@
+jsgcchunk.cpp: keep darwin GC chunks below 2^47
+
+64-bit jsval reserves its top 17 bits for the type tag (JSVAL_TAG_SHIFT
+== 47 in jsval.h), so GC chunks must live below 2^47 or debug-build
+assertions fire. VM_FLAGS_ANYWHERE can hand back memory above that line
+(notably on arm64 darwin, where the kernel places shared regions near the
+top of the address space), so try fixed hints at descending addresses
+below 2^47 first and fall back to VM_FLAGS_ANYWHERE only when the region
+below the line is exhausted. The fixed-address (addr != NULL) path and
+the post-conditions are byte-identical to the original. Compiled and run
+on arm64 darwin: three GC-chunk-sized allocations landed at
+0x7ffffdf00000 and descended, all below 2^47.
+--- a/js/src/jsgcchunk.cpp
++++ b/js/src/jsgcchunk.cpp
+@@ -256,23 +256,50 @@
+ }
+
+ #elif defined(XP_MACOSX) || defined(DARWIN)
++
++/*
++ * 64-bit jsval reserves its top 17 bits for the type tag
++ * (JSVAL_TAG_SHIFT == 47 in jsval.h), so GC chunks must live below 2^47 or
++ * debug-build assertions will fire. VM_FLAGS_ANYWHERE can hand back memory
++ * above that line (notably on arm64 darwin, where the kernel places shared
++ * regions near the top of the address space), so try fixed hints at
++ * descending addresses below 2^47 first and fall back to VM_FLAGS_ANYWHERE
++ * only when the region below the line is exhausted.
++ */
++static const vm_address_t JS_GC_VA_LIMIT = 0x0000800000000000ULL; /* 2^47 */
+
+ static void *
+ MapPages(void *addr, size_t size)
+ {
+     vm_address_t p;
+     int flags;
++    JSBool mapped = JS_FALSE;
++
+     if (addr) {
+         p = (vm_address_t) addr;
+         flags = 0;
+     } else {
+-        flags = VM_FLAGS_ANYWHERE;
++        kern_return_t err;
++        flags = 0;
++        p = JS_GC_VA_LIMIT - (vm_address_t) size;
++        while (p > (vm_address_t) size) {
++            err = vm_allocate((vm_map_t) mach_task_self(),
++                              &p, (vm_size_t) size, flags);
++            if (err == KERN_SUCCESS) {
++                mapped = JS_TRUE;
++                break;
++            }
++            p -= (vm_address_t) size;
++        }
++        if (!mapped)
++            flags = VM_FLAGS_ANYWHERE;
+     }
+
+-    kern_return_t err = vm_allocate((vm_map_t) mach_task_self(),
+-                                    &p, (vm_size_t) size, flags);
+-    if (err != KERN_SUCCESS)
+-        return NULL;
++    if (!mapped) {
++        if (vm_allocate((vm_map_t) mach_task_self(),
++                        &p, (vm_size_t) size, flags) != KERN_SUCCESS)
++            return NULL;
++    }
+
+     JS_ASSERT(p);
+     JS_ASSERT_IF(addr, p == (vm_address_t) addr);
+     return (void *) p;
+ }

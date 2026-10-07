@@ -1,0 +1,54 @@
+Refresh config.guess/config.sub for darwin-arm64
+
+The 2009-era config.guess uses `uname -p` on Darwin, which returns "arm"
+on Apple Silicon (yields arm-apple-darwin); config.sub (2009-12-04) rejects
+both `aarch64-apple-darwin` and `arm64-apple-darwin`. Switch Darwin to
+`uname -m` and canonicalize `arm64` -> `aarch64` (mirrors the existing
+amd64 -> x86_64 alias precedent). The i386 -> x86_64 LP64 probe is preserved
+so Intel/Rosetta behavior is unchanged. Live output on Apple Silicon:
+config.guess -> aarch64-apple-darwin25.5.0
+--- a/js/src/build/autoconf/config.guess
++++ b/js/src/build/autoconf/config.guess
+@@ -1245,8 +1245,9 @@
+ 	echo ${UNAME_MACHINE}-apple-rhapsody${UNAME_RELEASE}
+ 	exit ;;
+     *:Darwin:*:*)
+-	UNAME_PROCESSOR=`uname -p` || UNAME_PROCESSOR=unknown
++	UNAME_PROCESSOR=`uname -m` || UNAME_PROCESSOR=unknown
+ 	case $UNAME_PROCESSOR in
++	    arm64) UNAME_PROCESSOR=aarch64 ;;
+ 	    i386) eval $set_cc_for_build
+ 	          if $CC_FOR_BUILD -E -dM -x c /dev/null | grep __LP64__>/dev/null 2>&1 ; then
+ 	            UNAME_PROCESSOR=x86_64
+--- a/js/src/build/autoconf/config.sub
++++ b/js/src/build/autoconf/config.sub
+@@ -248,6 +248,7 @@
+ 	| alpha | alphaev[4-8] | alphaev56 | alphaev6[78] | alphapca5[67] \
+ 	| alpha64 | alpha64ev[4-8] | alpha64ev56 | alpha64ev6[78] | alpha64pca5[67] \
+ 	| am33_2.0 \
++	| aarch64 | arm64 \
+ 	| arc | arm | arm[bl]e | arme[lb] | armv[2345] | armv[345][lb] | avr | avr32 \
+ 	| bfin \
+ 	| c4x | clipper \
+@@ -328,6 +329,7 @@
+ 	| alpha-* | alphaev[4-8]-* | alphaev56-* | alphaev6[78]-* \
+ 	| alpha64-* | alpha64ev[4-8]-* | alpha64ev56-* | alpha64ev6[78]-* \
+ 	| alphapca5[67]-* | alpha64pca5[67]-* | arc-* \
++	| aarch64-* | arm64-* \
+ 	| arm-*  | armbe-* | armle-* | armeb-* | armv*-* \
+ 	| avr-* | avr32-* \
+ 	| bfin-* | bs2000-* \
+@@ -429,7 +431,13 @@
+ 		;;
+ 	amd64-*)
+ 		basic_machine=x86_64-`echo $basic_machine | sed 's/^[^-]*-//'`
++		;;
++	arm64)
++		basic_machine=aarch64-unknown
+ 		;;
++	arm64-*)
++		basic_machine=aarch64-`echo $basic_machine | sed 's/^[^-]*-//'`
++		;;
+ 	amdahl)
+ 		basic_machine=580-amdahl
+ 		os=-sysv

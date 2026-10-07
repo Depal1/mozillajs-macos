@@ -1,0 +1,22 @@
+Makefile.in: route aarch64/arm64 to the pcre regex path
+
+Extends the existing `powerpc sparc` TARGET_CPU filter at the pcre path
+so aarch64/arm64 targets do not descend into the Nitro else-branch, which
+compiles RegexJIT.cpp / MacroAssembler*.cpp and hits the
+"MacroAssembler is not supported on this platform" #error (there is no
+aarch64 case in assembler/wtf/Platform.h). pcre is the documented default
+(ENABLE_YARR_JIT is defined nowhere; jsregexpinlines.h:48-52), same as the
+powerpc/sparc precedent; the forced -DUSE_SYSTEM_MALLOC/-DENABLE_ASSEMBLER/
+-DENABLE_JIT CXXFLAGS further down remain defined-but-inert on the pcre
+path because the assembler sources are never compiled.
+--- a/js/src/Makefile.in
++++ b/js/src/Makefile.in
+@@ -375,7 +375,7 @@
+ # END enclude sources for V8 dtoa
+ #############################################
+
+-ifeq (,$(filter-out powerpc sparc,$(TARGET_CPU)))
++ifeq (,$(filter-out powerpc sparc aarch64 arm64,$(TARGET_CPU)))
+
+ VPATH +=	$(srcdir)/assembler \
+ 		$(srcdir)/assembler/wtf \

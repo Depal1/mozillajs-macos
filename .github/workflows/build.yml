@@ -1,0 +1,71 @@
+# Build CI for mozjs185-macos: runs the local build steps (build.sh) on a
+# macos-26 runner and uploads the release artifact. NOTE: macos images ship no
+# python2, so this workflow installs the python.org 2.7.18 pkg first
+# (configure hard-requires a 2.x interpreter; 3.x is rejected).
+#
+# Status: scaffold only — activating requires the repo to exist on GitHub.
+name: build
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-macos:
+    runs-on: macos-26
+    strategy:
+      matrix:
+        include:
+          - arch: arm64
+            jit: 0
+          - arch: x86_64
+            jit: 0
+          - arch: x86_64
+            jit: 1
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Record toolchain
+        run: xcode-select -p && clang --version | tee toolchain.txt
+
+      - name: Install python2.7 (python.org 2.7.18 pkg)
+        run: |
+          curl -fsSL -o /tmp/python2.pkg \
+            https://www.python.org/ftp/python/2.7.18/python-2.7.18-macosx10.9.pkg
+          sudo installer -pkg /tmp/python2.pkg -target /
+
+      - name: Build NSPR 4.35
+        run: |
+          curl -fsSL -o nspr.tar.gz \
+            https://ftp.mozilla.org/pub/nspr/releases/v4.35/src/nspr-4.35.tar.gz
+          echo "5e0acf9fbdde85181bddd510f4624841  nspr.tar.gz" | md5sum -c -
+          tar xzf nspr.tar.gz
+          mkdir nspr-build && cd nspr-build
+          CC="clang -arch ${{ matrix.arch }}" CXX="clang++ -arch ${{ matrix.arch }}" \
+            ../nspr-4.35/nspr/configure \
+            --prefix="$PWD/../nspr-install-${{ matrix.arch }}" --enable-64bit
+          make -j$(sysctl -n hw.ncpu) && make install
+
+      - name: Build js185 (${{ matrix.arch }}, jit=${{ matrix.jit }})
+        run: |
+          ARCH=${{ matrix.arch }} JIT=${{ matrix.jit }} \
+            NSPR_PREFIX="$PWD/nspr-install-${{ matrix.arch }}" ./build.sh
+
+      - name: Smoke (arm64 interpreter-only only)
+        if: matrix.arch == 'arm64' && matrix.jit == 0
+        run: |
+          clang++ -arch arm64 -std=gnu++98 \
+            -I js/src -I js/src/build-arm64-interp \
+            -I "nspr-install-arm64/include/nspr" \
+            tools/smoke.cpp -o smoke \
+            -L js/src/build-arm64-interp -ljs_static \
+            -L "nspr-install-arm64/lib" -lnspr4 -lplc4 -lplds4 \
+            -framework CoreFoundation -Wl,-rpath,"$PWD/nspr-install-arm64/lib"
+          ./smoke
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: mozjs-js185-macos-${{ matrix.arch }}${{ matrix.jit == '1' && '-jit' || '' }}
+          path: dist/mozjs-js185-macos-${{ matrix.arch }}.tar.gz
+          if-no-files-found: error
