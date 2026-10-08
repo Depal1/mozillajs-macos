@@ -16,6 +16,13 @@
 # Flavors: ARCH=arm64 (default) | x86_64; JIT=1 keeps the method/trace JIT
 # (x86_64 reference builds only — there is no arm64 JIT backend).
 #
+# Linux hosts (e.g. filling the README benchmark table's Linux-x86_64-JIT
+# cell): same script, same harness — non-darwin hosts get the
+# $ARCH-linux-gnu configure triple and no darwin -arch flags. Needs
+# gcc/clang, perl, python2.7, NSPR built for linux, e.g.:
+#     NSPR_PREFIX="$PWD/../nspr-install-linux" ARCH=x86_64 JIT=1 \
+#         BUILD_DIR=build-x86_64-jit ./build.sh
+#
 # Usage: ./build.sh           # configure + make + make install into js/src/<builddir>/dist
 set -eu
 
@@ -27,12 +34,23 @@ BUILD_DIR="${BUILD_DIR:-build-$ARCH-interp}"
 BUILD="$SRCDIR/$BUILD_DIR"
 NSPR_PREFIX="${NSPR_PREFIX:-$(cd "$ROOT/.." && pwd)/nspr-install-$ARCH}"
 
+# Host triple + arch flags: darwin builds use clang -arch $ARCH and the
+# $ARCH-apple-darwin triple; any other host (e.g. a Linux x86_64 box filling
+# the README benchmark table's Linux-x86_64-JIT cell) gets the
+# $ARCH-linux-gnu triple and no -arch flags. Override with HOST_TRIPLE.
+ARCH_FLAG="-arch $ARCH"
+case "$(uname -s)" in
+    Darwin) HOST_TRIPLE="${HOST_TRIPLE:-$ARCH-apple-darwin}" ;;
+    *)      HOST_TRIPLE="${HOST_TRIPLE:-$ARCH-linux-gnu}"; ARCH_FLAG="" ;;
+esac
+
 PYTHON2="${PYTHON2:-$(command -v python2.7 || true)}"
 if [ -z "$PYTHON2" ]; then
     echo "ERROR: python2.7 is required by configure (2.x only; python.org 2.7.18 pkg)." >&2
     exit 1
 fi
-if [ ! -x "$NSPR_PREFIX/lib/libnspr4.dylib" ] && [ ! -f "$NSPR_PREFIX/lib/libnspr4.a" ]; then
+if [ ! -x "$NSPR_PREFIX/lib/libnspr4.dylib" ] && [ ! -f "$NSPR_PREFIX/lib/libnspr4.a" ] \
+   && [ ! -f "$NSPR_PREFIX/lib/libnspr4.so" ]; then
     echo "ERROR: NSPR not found at $NSPR_PREFIX (set NSPR_PREFIX)." >&2
     exit 1
 fi
@@ -57,16 +75,16 @@ cd "$BUILD"
 # the wrappers never engage.
 CC="clang -Wno-error=implicit-int -Wno-error=implicit-function-declaration" \
 CXX="clang++ -Wno-error=implicit-int -Wno-error=implicit-function-declaration" \
-CFLAGS="-arch $ARCH -Wno-error=implicit-int -Wno-error=implicit-function-declaration" \
-CXXFLAGS="-arch $ARCH -std=gnu++98 -Wno-error=implicit-int -Wno-error=implicit-function-declaration" \
+CFLAGS="$ARCH_FLAG -Wno-error=implicit-int -Wno-error=implicit-function-declaration" \
+CXXFLAGS="$ARCH_FLAG -std=gnu++98 -Wno-error=implicit-int -Wno-error=implicit-function-declaration" \
 PYTHON="$PYTHON2" MACOSX_DEPLOYMENT_TARGET=11.0 \
 "$SRCDIR/configure" --prefix="$BUILD/dist" \
-    --host=$ARCH-apple-darwin --build=$ARCH-apple-darwin \
+    --host=$HOST_TRIPLE --build=$HOST_TRIPLE \
     --disable-shared-js --enable-threadsafe --disable-tests \
     --with-system-nspr --with-nspr-prefix="$NSPR_PREFIX" \
     $JIT_FLAGS --disable-warnings-as-errors
 
-JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
+JOBS="${JOBS:-$(sysctl -n hw.ncpu 2>/dev/null || nproc)}"
 make -j"$JOBS"
 make install
 

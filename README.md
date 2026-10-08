@@ -104,12 +104,55 @@ JIT vs Linux x86_64 JIT. Times in ms (lower is better; best of 3).
 | native-arm64-interp | 602 | 21 | 147 | 107 |
 | Rosetta-x86_64-interp | 869 | 208 | 538 | 1152 |
 | Rosetta-x86_64-JIT | 1028 | 209 | 543 | 1154 |
-| Linux-x86_64-JIT | deferred (one-off Linux run, oolite Task 15) | | | |
+| Linux-x86_64-JIT | DEFERRED (recipe below — no Linux rig at publication) | | | |
 
-Reading: the native arm64 interpreter-only build is the fastest cell on
-the first build host — Rosetta 2 tax dominates, and the 2011 methodjit
-adds nothing for these kernels under emulation (its compile overhead makes
-math slightly slower than the x86_64 interpreter).
+Methodology — all three filled cells: same host, same pinned source
+(`c463e95`), same harness (`tools/bench.sh <js-shell> <label>`, best of 3
+wall-clock runs over the four kernels in `tools/bench-*.js`). The
+decomposition separates the two variables:
+
+- **native-arm64-interp vs Rosetta-x86_64-interp** isolates the
+  **Rosetta 2 tax**: identical interpreter engine, identical source; only
+  the ISA/emulation differs.
+- **Rosetta-x86_64-JIT vs Rosetta-x86_64-interp** isolates the **JIT's
+  contribution** under emulation: identical ISA, identical Rosetta; only
+  methodjit differs.
+
+**Key finding, stated plainly: the native arm64 interpreter-only build
+beats the Rosetta x86_64 JIT build on every kernel** — strings 21 ms vs
+208/209 ms (~10x), objects 107 ms vs 1152/1154 ms (~10.8x), arrays 147 ms
+vs 538/543 ms (~3.7x), math 602 ms vs 869/1028 ms (~1.4–1.7x). Executing
+Oolite's JavaScript natively on the interpreter is strictly faster than
+executing the JIT-enabled engine under Rosetta 2, so the arm64
+interpreter-only artifact is not a compromise against the emulated x86_64
+JIT status quo — it is the faster configuration on this class of hardware.
+(Secondary reading: the 2011 methodjit adds nothing for these kernels
+under emulation — its compile overhead makes math slightly slower than the
+x86_64 interpreter and closes none of the Rosetta tax elsewhere.)
+
+### Linux-x86_64-JIT cell — DEFERRED (fill-in recipe)
+
+No Linux rig was available at publication. Any Linux x86_64 box fills the
+cell in one command with the same source and the same harness.
+Prerequisites: gcc or clang, perl, python2.7, and NSPR 4.35 built for
+linux (`CC=gcc ../nspr-4.35/nspr/configure
+--prefix=$PWD/../nspr-install-linux --enable-64bit && make -j && make
+install`). Then:
+
+```sh
+NSPR_PREFIX="$PWD/../nspr-install-linux" ARCH=x86_64 JIT=1 \
+    BUILD_DIR=build-x86_64-jit ./build.sh
+```
+
+`build.sh` auto-selects the `x86_64-linux-gnu` configure triple and drops
+the darwin-only `-arch` flags on non-darwin hosts. Then measure with the
+same harness and record the four numbers in the table above:
+
+```sh
+tools/bench.sh js/src/build-x86_64-jit/dist/bin/js linux-x86_64-jit
+# if the shell cannot locate libnspr4.so at runtime, prefix:
+#   LD_LIBRARY_PATH="$NSPR_PREFIX/lib"
+```
 
 ## jstests deltas
 
@@ -147,6 +190,55 @@ reproduced):
   flaky under 8-worker Rosetta load, not an architecture delta.
 - No Punbox/value-layout/GC-shaped failure cluster on arm64 — the
   interpreter-only CPU-case patch and the 2^47 GC-chunk patch hold.
+
+## PGO decision gate (oolite Task 15) — NOT TRIGGERED
+
+Pre-agreed rule (port plan): build the PGO artifact (`-O3 -flto=thin` +
+two-pass profile-guided optimization) **only if** the native JS-bound
+frame time is **> 1.5x the Rosetta-1.90 baseline AND the difference is
+user-visible**. Otherwise record "not triggered". Recorded verdict:
+**not triggered** — no PGO build was made. The numbers:
+
+- **Engine level** (table above): native-arm64-interp is *faster* than
+  Rosetta-x86_64-JIT on every kernel — by 1.7x on math, ~3.7x on arrays,
+  ~10x on strings, ~10.8x on objects. Oolite 1.90 under Rosetta 2
+  executes its JavaScript through an x86_64 build of this same js185
+  engine family, JIT-enabled (upstream `libjs.make`); under *either*
+  x86_64 configuration in the table (JIT or interpreter), the Rosetta
+  cell is slower than native on every kernel. The native JS-bound time is
+  therefore below 1.0x the 1.90 baseline — nowhere near the >1.5x trigger
+  (which would require e.g. ~313 ms on strings vs the measured 21 ms).
+  The 1.90 baseline also runs the entire game — not just the JS engine —
+  under emulation, which raises the baseline frame time and the >1.5x
+  trigger threshold with it: the verdict is robust to wherever the
+  measured baseline lands.
+- **Frame level** (oolite Task 9, same M1 Max host, 75 Hz display):
+  sustained **73.4–75.5 fps** across menu idle, sleep/wake and in-flight
+  soak (pacing-capped by the Task 9 v-sync fix, vs ~220 fps uncapped
+  pre-pacing), with the JavaScript frame callback executing every frame;
+  full universe load — JS engine init plus all ship scripts — completes
+  in 0.66–0.78 s; 82 scripted minutes across 11 processes, zero crashes,
+  zero errors. The frame budget is display-paced, not JS-starved.
+- **jstests timing deltas**: the only timing-classified failure is
+  `js1_5/Array/regress-157652.js` (the arm64 interpreter hits the 150 s
+  harness timeout before the expected OOM exit on a giant `Array.sort()`
+  — a test-environment artifact, not a per-frame workload pattern). No
+  native-side performance cluster (see deltas above).
+- **FrameGuard**: the sustained eval+GC corruption was root-caused to the
+  verification harness itself (teardown-order use-after-free; see
+  "Known issue — RESOLVED"), so all engine performance and behavior
+  numbers above are unaffected.
+
+**Rosetta-1.90 fps baseline: HUMAN-PENDING.** No 1.90 comparison was
+runnable in the automated environment (locked, screen-observed console; no
+local 1.90 install). To close the leg: run Oolite 1.90 (x86_64) under
+Rosetta 2 on the same 75 Hz display, fly a comparable populated-system
+segment, and record sustained fps the way Task 9 did (TCP debug console
+frame callback; the driver is preserved at
+`oolite_ARM/.internal/sdd/oolite-arm64/t9-evidence/t9-soak-driver.py`).
+Only a sustained native fps *deficit* against 1.90 would re-open this
+gate; the engine-level bound above (native faster than either Rosetta
+cell) says one should not exist.
 
 ## Known issue — RESOLVED (diagnosis 2026-10-07)
 
@@ -187,6 +279,11 @@ benchmark results remain valid.
       iterations × 64 live rooted objects, every `JSObject*` below 2^47,
       zero JS error-reporter callbacks
 - [x] jstests deltas + benchmark table recorded above
+- [x] T15: benchmark table finalized (3 cells, methodology, deferred-Linux
+      recipe); PGO gate evaluated per the pre-agreed rule — **not
+      triggered** (numbers in the PGO decision gate section;
+      Linux-x86_64-JIT cell and the Rosetta-1.90 fps baseline remain the
+      two external legs: recipe + instructions inline)
 - [x] Release artifact packaged: `dist/mozjs-js185-macos-arm64.tar.gz`
       (`include/` + `lib/js_static.a` + `LICENSE`; gitignored — release
       tags/CI upload it)
