@@ -5,3 +5,4 @@ dist/
 *.a
 *.dylib
 .DS_Store
+*.pyc

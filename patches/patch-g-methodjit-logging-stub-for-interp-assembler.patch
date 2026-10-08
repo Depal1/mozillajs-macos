@@ -1,0 +1,44 @@
+methodjit/Logging.h: keep the JaegerSpew stub available without methodjit
+
+The outer guard `(defined JS_METHODJIT || defined JS_TRACER)` made this
+header contribute nothing at all when both JIT backends are disabled,
+yet assembler/X86Assembler.h (compiled whenever the YARR regex JIT is
+on, e.g. x86_64 with --disable-methodjit) references js::JaegerSpew and
+js::JSpew_Insns unconditionally in its per-insn helpers. Upstream never
+hit this because every upstream x86 build had methodjit enabled.
+
+Restructure the guard so the include guard, the JaegerSpewChannel enum
+and the no-op JaegerSpew stub are always available; prmjtime.h and the
+real spew machinery (JMCheckLogging, Profiler) stay behind the methodjit
+gate, so every upstream configuration sees identical content.
+--- a/js/src/methodjit/Logging.h
++++ b/js/src/methodjit/Logging.h
+@@ -38,10 +38,12 @@
+  *
+  * ***** END LICENSE BLOCK ***** */
+ 
+-#if !defined jsjaeger_logging_h__ && (defined JS_METHODJIT || defined JS_TRACER)
++#if !defined jsjaeger_logging_h__
+ #define jsjaeger_logging_h__
+ 
++#if defined(JS_METHODJIT) || defined(JS_TRACER)
+ #include "prmjtime.h"
++#endif
+ 
+ namespace js {
+ 
+@@ -62,11 +64,12 @@
+     JSpew_Terminator
+ };
+ 
+-#if defined(DEBUG) && !defined(JS_METHODJIT_SPEW)
++#if defined(DEBUG) && !defined(JS_METHODJIT_SPEW) && \
++    (defined(JS_METHODJIT) || defined(JS_TRACER))
+ # define JS_METHODJIT_SPEW
+ #endif
+ 
+-#if defined(JS_METHODJIT_SPEW)
++#if defined(JS_METHODJIT_SPEW) && (defined(JS_METHODJIT) || defined(JS_TRACER))
+ 
+ void JMCheckLogging();
+ 

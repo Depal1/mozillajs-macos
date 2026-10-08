@@ -91,7 +91,12 @@ main(int argc, char **argv)
     if (!cx) { fprintf(stderr, "FAIL: JS_NewContext\n"); return 1; }
     JS_SetErrorReporter(cx, smokeErrorReporter);      /* jsapi.h:3643 */
 
-    global = JS_NewGlobalObject(cx, &smokeGlobalClass); /* jsapi.h:2165, 2-arg */
+    /* The FIRST global must be created inside a fresh compartment:
+     * plain JS_NewGlobalObject would run with cx->compartment == NULL and
+     * crash (jsapi.cpp:3058 asserts/asserts-fail there). This fork's
+     * JS_NewCompartmentAndGlobalObject is 3-arg with NULL principals
+     * (jsapi.h:2168); JS_NewGlobalObject itself is 2-arg (:2165). */
+    global = JS_NewCompartmentAndGlobalObject(cx, &smokeGlobalClass, NULL);
     if (!global) { fprintf(stderr, "FAIL: JS_NewGlobalObject\n"); return 1; }
     if (!JS_AddNamedObjectRoot(cx, &global, "global")) { /* jsapi.h:1286 */
         fprintf(stderr, "FAIL: JS_AddNamedObjectRoot(global)\n");

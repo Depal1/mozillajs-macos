@@ -38,10 +38,12 @@
  *
  * ***** END LICENSE BLOCK ***** */
 
-#if !defined jsjaeger_logging_h__ && (defined JS_METHODJIT || defined JS_TRACER)
+#if !defined jsjaeger_logging_h__
 #define jsjaeger_logging_h__
 
+#if defined(JS_METHODJIT) || defined(JS_TRACER)
 #include "prmjtime.h"
+#endif
 
 namespace js {
 
@@ -62,11 +64,12 @@ enum JaegerSpewChannel {
     JSpew_Terminator
 };
 
-#if defined(DEBUG) && !defined(JS_METHODJIT_SPEW)
+#if defined(DEBUG) && !defined(JS_METHODJIT_SPEW) && \
+    (defined(JS_METHODJIT) || defined(JS_TRACER))
 # define JS_METHODJIT_SPEW
 #endif
 
-#if defined(JS_METHODJIT_SPEW)
+#if defined(JS_METHODJIT_SPEW) && (defined(JS_METHODJIT) || defined(JS_TRACER))
 
 void JMCheckLogging();
 

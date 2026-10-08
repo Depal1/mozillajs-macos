@@ -46,7 +46,17 @@ cd "$BUILD"
 # NOTE: this autoconf-2.13 configure does NOT support VAR=VALUE command-line
 # arguments (they parse as positional host/target args) — pass the toolchain
 # via environment, as below.
-CC=clang CXX=clang++ \
+#
+# NOTE 2: the -Wno-error flags must live in CC/CXX themselves, not only in
+# CFLAGS/CXXFLAGS. configure's "understand -c and -o together" check compiles
+# `foo(){}` with BARE $CC (no CFLAGS); under clang 21 implicit-int is a hard
+# error there, which trips NO_MINUS_C_MINUS_O and silently rewires the whole
+# build through js/src/build/hcc|hcpp wrappers (configure:3616-3622,
+# 15224-15227) — which breaks CPP detection and dies at the static-assertion
+# check. With the flags in CC/CXX the bare check passes (warnings only) and
+# the wrappers never engage.
+CC="clang -Wno-error=implicit-int -Wno-error=implicit-function-declaration" \
+CXX="clang++ -Wno-error=implicit-int -Wno-error=implicit-function-declaration" \
 CFLAGS="-arch $ARCH -Wno-error=implicit-int -Wno-error=implicit-function-declaration" \
 CXXFLAGS="-arch $ARCH -std=gnu++98 -Wno-error=implicit-int -Wno-error=implicit-function-declaration" \
 PYTHON="$PYTHON2" MACOSX_DEPLOYMENT_TARGET=11.0 \
@@ -60,8 +70,9 @@ JOBS="${JOBS:-$(sysctl -n hw.ncpu)}"
 make -j"$JOBS"
 make install
 
-# Package (§6.2 artifact layout: include/ + lib/js_static.a; jsdbg_static is
-# never packaged — its debug LDFLAGS want -framework ExceptionHandling).
+# Package (§6.2 artifact layout: include/ + lib/js_static.a + LICENSE;
+# jsdbg_static is never packaged — its debug LDFLAGS want
+# -framework ExceptionHandling).
 STAGE="$ROOT/dist/stage"
 rm -rf "$STAGE"
 mkdir -p "$STAGE/include" "$STAGE/lib"
@@ -71,7 +82,10 @@ else
     cp -R "$BUILD/dist/include/." "$STAGE/include/"
 fi
 cp -f "$BUILD/dist/lib/libjs_static.a" "$STAGE/lib/js_static.a"
-TARBALL="$ROOT/dist/mozjs-js185-macos-$ARCH.tar.gz"
+cp -f "$ROOT/LICENSE" "$STAGE/LICENSE"
+FLAVOR_SUFFIX=""
+if [ "$JIT" = "1" ]; then FLAVOR_SUFFIX="-jit"; fi
+TARBALL="$ROOT/dist/mozjs-js185-macos-$ARCH$FLAVOR_SUFFIX.tar.gz"
 mkdir -p "$ROOT/dist"
-tar -C "$STAGE" -czf "$TARBALL" include lib
+tar -C "$STAGE" -czf "$TARBALL" include lib LICENSE
 echo "PACKAGED: $TARBALL"

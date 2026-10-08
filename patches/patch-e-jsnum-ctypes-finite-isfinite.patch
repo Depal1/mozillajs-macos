@@ -1,0 +1,42 @@
+Replace removed finite() with C99 isfinite()
+
+The deprecated POSIX finite() is no longer declared by modern macOS SDK
+headers (Xcode 26 / darwin 25), making jsnum.h and ctypes/CTypes.cpp fail
+to compile ("use of undeclared identifier 'finite'"). isfinite() is the
+C99 macro for the same predicate and is already the established idiom in
+this file (isnan() is used unqualified ten lines above, isinf() below).
+Fixes all three bare uses: JSDOUBLE_IS_FINITE (all non-WIN32), the
+SOLARIS branch of JSDOUBLE_IS_INFINITE (same symbol, latent), and
+jsctypes' FloatIsFinite.
+--- a/js/src/jsnum.h
++++ b/js/src/jsnum.h
+@@ -101,7 +101,7 @@
+ #ifdef WIN32
+     return _finite(d);
+ #else
+-    return finite(d);
++    return isfinite(d);
+ #endif
+ }
+
+@@ -112,7 +112,7 @@
+ #ifdef WIN32
+     int c = _fpclass(d);
+     return c == _FPCLASS_NINF || c == _FPCLASS_PINF;
+ #elif defined(SOLARIS)
+-    return !finite(d) && !isnan(d);
++    return !isfinite(d) && !isnan(d);
+ #else
+     return isinf(d);
+ #endif
+--- a/js/src/ctypes/CTypes.cpp
++++ b/js/src/ctypes/CTypes.cpp
+@@ -464,7 +464,7 @@
+ #ifdef WIN32
+   return _finite(f) != 0;
+ #else
+-  return finite(f);
++  return isfinite(f);
+ #endif
+ }
+

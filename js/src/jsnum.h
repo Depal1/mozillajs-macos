@@ -101,7 +101,7 @@ JSDOUBLE_IS_FINITE(jsdouble d)
 #ifdef WIN32
     return _finite(d);
 #else
-    return finite(d);
+    return isfinite(d);
 #endif
 }
 
@@ -112,7 +112,7 @@ JSDOUBLE_IS_INFINITE(jsdouble d)
     int c = _fpclass(d);
     return c == _FPCLASS_NINF || c == _FPCLASS_PINF;
 #elif defined(SOLARIS)
-    return !finite(d) && !isnan(d);
+    return !isfinite(d) && !isnan(d);
 #else
     return isinf(d);
 #endif

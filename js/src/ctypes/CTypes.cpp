@@ -464,7 +464,7 @@ static inline bool FloatIsFinite(jsdouble f) {
 #ifdef WIN32
   return _finite(f) != 0;
 #else
-  return finite(f);
+  return isfinite(f);
 #endif
 }
 
