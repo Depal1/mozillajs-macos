@@ -148,13 +148,25 @@ reproduced):
 - No Punbox/value-layout/GC-shaped failure cluster on arm64 — the
   interpreter-only CPU-case patch and the 2^47 GC-chunk patch hold.
 
-## Known issue
+## Known issue — RESOLVED (diagnosis 2026-10-07)
 
-FrameGuard corruption under sustained eval+GC (~160+ cycles):
-upstream-inherited — it reproduces with the macos/arm64 patches reverted
-(see the Task 1 adversarial verification), so it is tracked as an oolite
-ARM port follow-up, not a port regression. Short-eval workloads are
-unaffected. Mitigation candidates under diagnosis.
+FrameGuard corruption under sustained eval+GC (~160+ cycles) was
+root-caused to the Task 1 **adversarial verification harness**, not the
+engine: the harness declared its `JSAutoEnterCompartment` at `main` scope,
+so its destructor ran AFTER `JS_DestroyContext`/`JS_DestroyRuntime`/
+`JS_ShutDown` had freed the JSContext and the interpreter StackSpace.
+`~FrameGuard` then popped the still-pushed dummy frame through freed
+memory (use-after-free), faulting with garbage `cx_` bytes. The
+wave-count "threshold" was malloc reuse of the freed blocks, not a GC or
+optimization boundary: the original harness crashes identically at -O0
+and at 20 waves (heap-layout dependent), with the engine untouched.
+
+Evidence and proof: `.internal/sdd/oolite-arm64/frameguard-diagnosis.md`
+(parent repo). The corrected sustained-stress harness ships as
+`tools/stress-sustained.cpp` (600 waves, pass = exit 0 +
+`ALL-BELOW-2^47`); `tools/smoke.cpp` documents the teardown-order
+contract. Engine sources unchanged — the previously recorded jstests and
+benchmark results remain valid.
 
 ## Status
 

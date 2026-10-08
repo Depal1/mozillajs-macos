@@ -105,6 +105,13 @@ main(int argc, char **argv)
 
     JS_BeginRequest(cx);                              /* jsapi.h:743 */
     {
+        /* Teardown-order contract: this guard (and the request above) must
+         * leave scope BEFORE JS_DestroyContext/JS_DestroyRuntime — its dtor
+         * pops a pushed dummy frame, so it must not outlive the runtime.
+         * The block scope here ends before the teardown calls below. A
+         * guard that lives to the end of main crashes in
+         * js::FrameGuard::~FrameGuard (use-after-free; see
+         * tools/stress-sustained.cpp for the documented pattern). */
         JSAutoEnterCompartment ac;                    /* jsapi.h:1029 */
         if (!ac.enter(cx, global)) {
             fprintf(stderr, "FAIL: JSAutoEnterCompartment::enter\n");
