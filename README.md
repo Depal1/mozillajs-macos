@@ -81,6 +81,10 @@ Gotchas encoded in `build.sh`:
   dies at the static-assertion check);
 - the `js` shell links NSPR dylibs via `@executable_path`, so the three
   NSPR dylibs must sit next to `shell/js` for jstests.py runs.
+- app packaging (oolite Task 10): the NSPR dylibs carry `@executable_path`
+  install names, so an app bundle must bundle the three NSPR dylibs and
+  @rpath-rename them alongside `libjs_static.a`'s consumers — the shell
+  note above covers only the shell case.
 
 Smoke harness: `tools/smoke.cpp` (128 GC iterations over 64 rooted live
 objects; asserts every `JSObject*` < 2^47, per `JSVAL_TAG_SHIFT == 47`).
@@ -116,7 +120,7 @@ reproduced):
 
 | Shell | fail | pass | failures |
 |---|---|---|---|
-| native-arm64-interp | 10 | ~2990 | 4 Date + 5 pcre + 1 timeout (below) |
+| native-arm64-interp | 10 | ~2990 | 4 Date + 4 pcre + 1 alloc-expectation + 1 timeout (below) |
 | Rosetta-x86_64-interp | 5 | ~2997 | 4 Date + 1 flaky |
 | Rosetta-x86_64-JIT | 4 | 2999 | 4 Date |
 
@@ -124,13 +128,17 @@ reproduced):
   `15.9.5.29-1.js`, `15.9.5.34-1.js`, `15.9.5.35-1.js` — test-harness
   environment issues (`startTest`/`printBugNumber`/`enterFunc` undefined
   from the vendored harness shell.js), identical on every architecture.
-- 5 failures arm64-only, all regexp-engine differences from documented
+- 4 failures arm64-only are regexp-engine differences from documented
   Deviation #2 (pcre on aarch64 vs YARR on x86_64):
   `ecma_3/RegExp/regress-119909.js`, `js1_5/Regress/regress-230216-2.js`,
-  `regress-280769-2.js`, `regress-422348.js`,
-  `js1_5/Regress/regress-440926.js` — pcre either bails with "regular
-  expression too complex" where YARR compiles, or reports different
-  overflow errors / case-folding.
+  `regress-280769-2.js`, `js1_5/Regress/regress-440926.js` — pcre either
+  bails with "regular expression too complex" where YARR compiles, or
+  reports different overflow errors / case-folding.
+- `js1_5/Regress/regress-422348.js` is NOT a pcre-vs-YARR delta: it is an
+  allocation-overflow-expectation test (`Array(1<<30).sort()`) and is
+  allocation-environment-sensitive — it fails in-suite on both arm64
+  runs, passes in-suite on x86_64, and fails in isolation on ALL shells.
+  Mechanism unconfirmed; benign; not an engine cluster.
 - `js1_5/Array/regress-157652.js` fails arm64-only on timing: the test
   expects an OOM exit (code 5) on a very large `Array.sort()`; the
   interpreter is killed by the 150 s timeout first (rc=-9).
@@ -139,6 +147,14 @@ reproduced):
   flaky under 8-worker Rosetta load, not an architecture delta.
 - No Punbox/value-layout/GC-shaped failure cluster on arm64 — the
   interpreter-only CPU-case patch and the 2^47 GC-chunk patch hold.
+
+## Known issue
+
+FrameGuard corruption under sustained eval+GC (~160+ cycles):
+upstream-inherited — it reproduces with the macos/arm64 patches reverted
+(see the Task 1 adversarial verification), so it is tracked as an oolite
+ARM port follow-up, not a port regression. Short-eval workloads are
+unaffected. Mitigation candidates under diagnosis.
 
 ## Status
 
