@@ -60,6 +60,8 @@ architecture"): nothing downstream can even run configure without it.
 
 AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
 
+Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
+
 ## PR B: "Add aarch64/arm64 CPU cases to configure (interpreter-only)"
 
 Patch: `patch-b-configure-aarch64-cpu-cases.patch`
@@ -88,6 +90,8 @@ passes a 600-wave GC-stress soak (48,384 sampled object pointers, all below
 2^47) and the js185 test suite with no arm64-specific failure cluster.
 
 AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
+
+Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
 
 ## PR C: "Makefile.in: route aarch64/arm64 to the pcre regex path"
 
@@ -118,6 +122,8 @@ as a known deviation.
 
 AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
 
+Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
+
 ## PR D: "jsgcchunk.cpp: keep darwin GC chunks below 2^47"
 
 Patch: `patch-d-jsgcchunk-darwin-low47-va.patch`
@@ -143,6 +149,8 @@ without a single address at or above the line.
 
 AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
 
+Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
+
 ## PR E: "Replace removed finite() with C99 isfinite()"
 
 Patch: `patch-e-jsnum-ctypes-finite-isfinite.patch`
@@ -162,6 +170,8 @@ Verified by building the library clean on the Xcode 26 toolchain.
 
 AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
 
+Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
+
 ## PR F: "MethodJIT.cpp: drop meaningless volatile from file-scope asm"
 
 Patch: `patch-f-methodjit-file-scope-asm.patch`
@@ -180,6 +190,8 @@ interpreter-only) compiling clean and running under Rosetta on Apple
 Silicon.
 
 AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
+
+Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
 
 ## PR G: "methodjit/Logging.h: keep the JaegerSpew stub without methodjit"
 
@@ -205,3 +217,5 @@ Verified with the interpreter-only x86_64 reference build, which now
 compiles and runs under Rosetta.
 
 AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
+
+Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
