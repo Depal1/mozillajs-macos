@@ -24,10 +24,7 @@ code; how the oolite port itself satisfies the SDL3/meson/espeak-ng
 restrictions is covered by the companion oolite PR series and its design
 issue.
 
-AI-assistance disclosure: these patches were developed with the assistance
-of an AI coding agent (GLM-5.3-Flash, orchestrated in ZCode). Every change
-was human-reviewed and validated by the builds and tests described in each
-PR below.
+AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); verified by the builds/tests described.
 
 ## PR A: "Refresh config.guess/config.sub for darwin-arm64"
 
@@ -58,7 +55,7 @@ This is the first of the three blockers oolite#360 listed for an ARM Mac
 build ("libjs needs to be updated to take advantage of the ARMv8/ARM64
 architecture"): nothing downstream can even run configure without it.
 
-AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
+AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); verified by the builds/tests described.
 
 Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
 
@@ -89,7 +86,7 @@ zero JIT/IC defines; the js shell and library build clean; the consumer
 passes a 600-wave GC-stress soak (48,384 sampled object pointers, all below
 2^47) and the js185 test suite with no arm64-specific failure cluster.
 
-AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
+AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); verified by the builds/tests described.
 
 Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
 
@@ -120,7 +117,7 @@ Turkish case-folding, one accepts a quantifier overflow silently). These are
 regex-engine semantic differences, not crashes; the consumer documents them
 as a known deviation.
 
-AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
+AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); verified by the builds/tests described.
 
 Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
 
@@ -147,7 +144,7 @@ landed at `0x7ffffdf00000` and descended, all below 2^47, and the consumer's
 GC-stress harness sampled 48,384 live object pointers across a 600-wave soak
 without a single address at or above the line.
 
-AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
+AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); verified by the builds/tests described.
 
 Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
 
@@ -168,7 +165,7 @@ idiom in these files (`isnan()` appears unqualified ten lines above, and
 
 Verified by building the library clean on the Xcode 26 toolchain.
 
-AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
+AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); verified by the builds/tests described.
 
 Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
 
@@ -189,7 +186,7 @@ Verified with both x86_64 reference builds (JIT-enabled and
 interpreter-only) compiling clean and running under Rosetta on Apple
 Silicon.
 
-AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
+AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); verified by the builds/tests described.
 
 Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
 
@@ -216,6 +213,6 @@ full spew, both as before).
 Verified with the interpreter-only x86_64 reference build, which now
 compiles and runs under Rosetta.
 
-AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); human-reviewed and verified by the builds/tests described.
+AI-assistance disclosure: developed with AI assistance (GLM-5.3-Flash); verified by the builds/tests described.
 
 Part of the arm64 enablement oolite#721 names as a prerequisite for an Apple Silicon release ("requires updating some major game dependencies"). Restriction check against #721: this patch adds only the build-system branches aarch64 requires (same fallback precedent as powerpc/sparc), touches no oolite-side platform code, and the consumer port itself satisfies the SDL3/meson/espeak-ng/minimal-OS-specific-code restrictions, covered by the companion oolite series.
